@@ -44,6 +44,13 @@ function capitalizar(texto) {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
+const ETIQUETA_FORMA = { tableta: 'tabletas', capsula: 'cápsulas', 'sin especificar': 'forma no especificada' };
+
+// "Losartan 100 mg (cápsulas)": principio, concentración y forma del grupo.
+function etiquetaGrupo(grupo) {
+  return `${capitalizar(grupo.principio)} ${grupo.concentracion} (${ETIQUETA_FORMA[grupo.forma]})`;
+}
+
 function pintarFecha() {
   const rango = rangoDeFechas(productos);
   if (!rango) {
@@ -69,7 +76,7 @@ function crearEnlace(url) {
 function pintarComparacion(p, grupo) {
   const panel = crear('div', 'comparacion');
   panel.append(crear('h4', 'comparacion-titulo', 'Misma sustancia, más barato'));
-  const nombreGrupo = `${capitalizar(grupo.principio)} ${grupo.concentracion}`;
+  const nombreGrupo = etiquetaGrupo(grupo);
   const resultado = compararConLaMasBarata(p, grupo);
 
   if (resultado.tipo === 'sin-unidades') {
@@ -142,7 +149,7 @@ function pintarGrupo(grupo) {
   const seccion = crear('section', 'grupo');
   const farmacias = new Set(grupo.productos.map((p) => p.farmacia)).size;
   seccion.append(
-    crear('h2', 'grupo-titulo', `${capitalizar(grupo.principio)} ${grupo.concentracion}`),
+    crear('h2', 'grupo-titulo', etiquetaGrupo(grupo)),
     crear('p', 'grupo-resumen', `${plural(grupo.productos.length, 'producto', 'productos')} · ${plural(farmacias, 'farmacia', 'farmacias')}`)
   );
 

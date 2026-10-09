@@ -82,12 +82,34 @@ function quedarseConLaMasReciente(filas) {
   return filas.filter((f) => f.fecha === fechaMasReciente.get(clave(f)));
 }
 
+// Forma farmacéutica deducida del texto: "tableta", "capsula" o "sin especificar".
+// Se busca primero en el producto (su nombre comercial) y luego en la presentación.
+// Si un mismo texto menciona las dos, gana la que aparece primero.
+// Los bordes usan letras, no palabras, para que "30TABLETAS" también cuente.
+const RE_TABLETA = /(?<![a-z])(tab|tabs|tableta|tabletas|comp|comprimido|comprimidos|grageas?|recubiertas?|cubiertas?|masticables?|com\.?\s?recub)(?![a-z])/;
+const RE_CAPSULA = /(?<![a-z])(cap|caps|capsula|capsulas|gelcaps?)(?![a-z])/;
+const ORDEN_FORMA = { tableta: 0, capsula: 1, 'sin especificar': 2 };
+
+function formaEnTexto(texto) {
+  const t = normalizarTexto(texto);
+  const tableta = RE_TABLETA.exec(t);
+  const capsula = RE_CAPSULA.exec(t);
+  if (!tableta && !capsula) return null;
+  if (tableta && capsula) return tableta.index < capsula.index ? 'tableta' : 'capsula';
+  return tableta ? 'tableta' : 'capsula';
+}
+
+export function detectarForma(presentacion, producto) {
+  return formaEnTexto(producto) ?? formaEnTexto(presentacion) ?? 'sin especificar';
+}
+
 // Convierte una fila del CSV en un producto listo para mostrar y comparar.
 // El precio por unidad se calcula aquí (precio / unidades). La columna
 // precio_unidad del CSV no se usa, según CLAUDE.md.
 function prepararFila(fila) {
   const precio = aNumero(fila.precio);
   const unidades = aNumero(fila.unidades);
+  const forma = detectarForma(fila.presentacion, fila.producto);
   return {
     fecha: fila.fecha,
     farmacia: fila.farmacia,
@@ -101,7 +123,8 @@ function prepararFila(fila) {
     precioLista: aNumero(fila.precio_lista),
     precioPorUnidad: precio !== null && unidades > 0 ? precio / unidades : null,
     url: fila.url,
-    claveGrupo: `${normalizarTexto(fila.principio_activo)}|${normalizarTexto(fila.concentracion)}`,
+    forma,
+    claveGrupo: `${normalizarTexto(fila.principio_activo)}|${normalizarTexto(fila.concentracion)}|${forma}`,
     textoBusqueda: normalizarTexto(`${fila.producto} ${fila.marca} ${fila.principio_activo}`),
   };
 }
@@ -122,7 +145,8 @@ function compararGrupos(a, b) {
   const ca = valorDeConcentracion(a.concentracion);
   const cb = valorDeConcentracion(b.concentracion);
   if (ca.numero !== cb.numero) return ca.numero - cb.numero;
-  return ca.unidad.localeCompare(cb.unidad, 'es');
+  if (ca.unidad !== cb.unidad) return ca.unidad.localeCompare(cb.unidad, 'es');
+  return ORDEN_FORMA[a.forma] - ORDEN_FORMA[b.forma];
 }
 
 // De menor a mayor precio por unidad. Si empatan, gana el de menor precio de caja.
@@ -134,7 +158,7 @@ function compararOfertas(a, b) {
   );
 }
 
-// Grupos (principio activo + concentración) con al menos un producto que coincide.
+// Grupos (principio activo + concentración + forma) con al menos un producto que coincide.
 // Un producto coincide si todas las palabras de la consulta aparecen en su
 // producto, marca o principio activo, sin importar tildes ni mayúsculas.
 // Si coincide un producto, se muestra su grupo completo: así la opción más
@@ -153,7 +177,7 @@ export function agrupar(productos, consulta) {
   for (const p of productos) {
     if (!clavesQueCoinciden.has(p.claveGrupo)) continue;
     if (!grupos.has(p.claveGrupo)) {
-      grupos.set(p.claveGrupo, { principio: p.principio, concentracion: p.concentracion, productos: [] });
+      grupos.set(p.claveGrupo, { principio: p.principio, concentracion: p.concentracion, forma: p.forma, productos: [] });
     }
     grupos.get(p.claveGrupo).productos.push(p);
   }

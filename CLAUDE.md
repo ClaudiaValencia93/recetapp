@@ -51,7 +51,7 @@ fecha,farmacia,principio_activo,concentracion,producto,marca,presentacion,unidad
 
 - Se compara por precio por unidad, no por caja: `precio / unidades`. Se calcula en el navegador. La columna `precio_unidad` del CSV no se usa.
 - El precio de la caja se puede mostrar, pero no decide quién es más barato.
-- Solo se compara dentro del mismo grupo: `principio_activo` + `concentracion`. La marca o el `producto` no separan grupos. Los productos sin unidades no entran al ranking.
+- Solo se compara dentro del mismo grupo: `principio_activo` + `concentracion` + forma (tableta o cápsula). La forma se deduce del `producto` y, si ahí no aparece, de la `presentacion`. Si no se puede deducir, va en un grupo aparte, "forma no especificada". La marca o el `producto` no separan grupos. Los productos sin unidades no entran al ranking.
 - La opción más barata es la de menor precio por unidad del grupo.
 - Si una farmacia tiene varias filas para la misma `url` y `presentacion`, se usa la de `fecha` más reciente. Si varias filas comparten esa fecha, se conservan todas.
 - El precio por unidad se muestra redondeado a pesos enteros, pero la comparación usa el valor exacto.
