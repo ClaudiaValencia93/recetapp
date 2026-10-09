@@ -22,7 +22,7 @@ RecetApp compara precios de medicamentos entre farmacias de Colombia y muestra l
 - Los precios viven en `data/precios.csv`. El navegador lo lee con `fetch` y lo procesa con JavaScript. No hay precios escritos en el HTML ni en el JavaScript.
 - Formato: UTF-8, separado por comas, con el encabezado en la primera fila. Si un valor tiene coma, va entre comillas dobles.
 - Nunca inventar precios, ni siquiera de muestra. Nunca editar precios a mano.
-- Un precio solo entra desde una consulta real a la farmacia o a su web, con la fecha de esa consulta. Si un precio cambia, se agrega una fila nueva con la fecha nueva. Las filas anteriores no se borran.
+- Un precio solo entra desde una consulta real a la farmacia o a su web, con la fecha de esa consulta. Si un precio cambia, se agrega una fila nueva con la fecha nueva. Las filas anteriores no se borran. La excepción es una fila mal clasificada (principio activo, concentración o forma equivocados, o un producto fuera de las reglas de comparación): se quita en un commit que diga cuál y por qué.
 - Los datos de prueba nunca van en `data/precios.csv`. Si hacen falta para desarrollar, van en un archivo aparte marcado como ficticio.
 - Si el CSV no tiene filas, la web lo dice ("Todavía no hay precios cargados") en vez de mostrar datos de relleno.
 
