@@ -7,8 +7,8 @@ RecetApp compara precios de medicamentos entre farmacias de Colombia y muestra l
 - Sitio estático en HTML, CSS y JavaScript. Sin frameworks y sin paso de build: nada de npm, bundlers ni compiladores.
 - Sin librerías externas. Si una hace falta, se pregunta antes.
 - Tiene que funcionar en GitHub Pages tal cual está en el repositorio: `index.html` en la raíz y rutas relativas (`data/precios.csv`, nunca `/data/precios.csv`).
-- Estructura prevista: `index.html`, `css/`, `js/` y `data/precios.csv`.
-- Para probar en local, usar un servidor HTTP, por ejemplo `python -m http.server`. Si se abre el archivo directamente (`file://`), el `fetch` del CSV falla.
+- Estructura: `index.html`, `css/estilo.css`, `js/datos.js` (lógica sin DOM), `js/app.js` (página), `data/precios.csv` y `scraper.py` (descarga de La Rebaja).
+- Para probar en local, usar un servidor HTTP, por ejemplo `python -m http.server 8081`. Si se abre el archivo directamente (`file://`), el `fetch` del CSV falla.
 
 ## Idioma
 
@@ -29,29 +29,34 @@ RecetApp compara precios de medicamentos entre farmacias de Colombia y muestra l
 El encabezado es exactamente este, en este orden:
 
 ```
-sustancia,concentracion,producto,unidad,unidades_por_caja,precio_caja,farmacia,fecha
+fecha,farmacia,principio_activo,concentracion,producto,marca,presentacion,unidades,precio,precio_lista,precio_unidad,url
 ```
 
 | Columna | Qué guarda |
 |---|---|
-| `sustancia` | Principio activo en minúsculas, por ejemplo `ibuprofeno`. |
+| `fecha` | Fecha de la consulta, en formato `AAAA-MM-DD`. |
+| `farmacia` | Nombre de la farmacia: La Rebaja, Locatel u Olímpica. |
+| `principio_activo` | Principio activo en minúsculas, por ejemplo `ibuprofeno`. |
 | `concentracion` | Dosis por unidad, por ejemplo `400 mg`. |
 | `producto` | Nombre con el que la farmacia vende el producto. |
-| `unidad` | Lo que se cuenta: `tableta`, `cápsula`, `ml`... |
-| `unidades_por_caja` | Cuántas unidades trae la caja. Entero mayor que cero. |
-| `precio_caja` | Precio de la caja en pesos. Solo dígitos, sin `$` ni puntos. |
-| `farmacia` | Nombre de la farmacia. |
-| `fecha` | Fecha de la consulta, en formato `AAAA-MM-DD`. |
+| `marca` | Marca o laboratorio, en mayúsculas. |
+| `presentacion` | Texto de la presentación, por ejemplo `CAJA X 30 TAB`. |
+| `unidades` | Unidades que trae la caja. Entero mayor que cero; vacío si no se sabe. |
+| `precio` | Precio de la caja en pesos. Solo dígitos, sin `$` ni puntos. |
+| `precio_lista` | Precio de lista en pesos. Puede ser igual a `precio`. |
+| `precio_unidad` | `precio / unidades` según el proceso de carga. La app no la usa: calcula el suyo en el navegador. |
+| `url` | Enlace a la página del producto en la farmacia. |
 
 ## Comparación
 
-- Se compara por precio por unidad, no por caja: `precio_caja / unidades_por_caja`. Se calcula en el navegador y nunca se guarda en el CSV.
+- Se compara por precio por unidad, no por caja: `precio / unidades`. Se calcula en el navegador. La columna `precio_unidad` del CSV no se usa.
 - El precio de la caja se puede mostrar, pero no decide quién es más barato.
-- Solo se compara dentro del mismo grupo: `sustancia` + `concentracion` + `unidad`. La marca o el `producto` no separan grupos.
+- Solo se compara dentro del mismo grupo: `principio_activo` + `concentracion`. La marca o el `producto` no separan grupos. Los productos sin unidades no entran al ranking.
 - La opción más barata es la de menor precio por unidad del grupo.
-- Si una farmacia tiene varias filas para el mismo `producto`, se usa la de `fecha` más reciente.
+- Si una farmacia tiene varias filas para la misma `url` y `presentacion`, se usa la de `fecha` más reciente. Si varias filas comparten esa fecha, se conservan todas.
 - El precio por unidad se muestra redondeado a pesos enteros, pero la comparación usa el valor exacto.
 - Cada precio que se muestra va con su farmacia y su fecha.
+- Misma sustancia, más barato: al tocar un producto, se compara con el más barato de su grupo. Se muestra el ahorro por unidad en porcentaje y en pesos por las mismas unidades de la caja. Si el producto ya es el más barato, se dice. Si no informa unidades, se explica que no se puede comparar.
 
 ## Diseño
 
